@@ -1,35 +1,61 @@
-use std::fs;
+use std::fs::read_to_string;
+use std::iter::successors;
 
 fn main() {
-    let mut total = 0;
-    let input = fs::read_to_string("input.txt").expect("Unable to open input.txt");
-
-    for line in input.lines() {
-        let module_mass = line.parse::<isize>().expect("Mass was not an integer");
-        total += calculate_module_fuel(module_mass);
-    }
-
-    println!("Total fuel required: {}", total);
+    let input = read_to_string("input.txt").expect("Unable to read input.txt");
+    let modules: Vec<u32> = input.lines().map(parse_module).collect();
+    let fuel_required: u32 = modules.iter().map(calculate_module_fuel).sum();
+    println!("Total fuel required: {}", fuel_required);
 }
 
-fn calculate_fuel(mass: isize) -> isize {
-    mass / 3 - 2
+fn calculate_fuel(mass: &u32) -> Option<u32> {
+    (mass / 3).checked_sub(2)
 }
 
-fn calculate_module_fuel(mass: isize) -> isize {
-    let mut fuel = calculate_fuel(mass);
-    let mut new_mass = fuel;
+fn calculate_module_fuel(mass: &u32) -> u32 {
+    successors(Some(*mass), calculate_fuel).skip(1).sum()
+}
 
-    loop {
-        let extra_fuel = calculate_fuel(new_mass);
+fn parse_module(line: &str) -> u32 {
+    line.parse().expect("Line was not an integer")
+}
 
-        if extra_fuel <= 0 {
-            break;
-        }
+#[cfg(test)]
+mod tests {
+    use super::{calculate_fuel, calculate_module_fuel};
 
-        fuel += extra_fuel;
-        new_mass = extra_fuel;
+    #[test]
+    fn test_1() {
+        assert_eq!(calculate_fuel(&12), Some(2));
     }
 
-    fuel
+    #[test]
+    fn test_2() {
+        assert_eq!(calculate_fuel(&14), Some(2));
+    }
+
+    #[test]
+    fn test_3() {
+        assert_eq!(calculate_fuel(&1969), Some(654));
+    }
+
+    #[test]
+    fn test_4() {
+        assert_eq!(calculate_fuel(&100756), Some(33583));
+    }
+
+    #[test]
+    fn test_5() {
+        assert_eq!(calculate_module_fuel(&14), 2);
+    }
+
+    #[test]
+    fn test_6() {
+        assert_eq!(calculate_module_fuel(&1969), 966);
+    }
+
+    #[test]
+    fn test_7() {
+        assert_eq!(calculate_module_fuel(&100756), 50346);
+    }
 }
